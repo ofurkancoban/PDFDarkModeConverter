@@ -1,6 +1,5 @@
 PyMuPDF==1.24.1
 PyMuPDFb==1.24.1
-pillow @ file:///private/var/folders/nz/j6p8yfhx1mv_0grj5xl4650h0000gp/T/abs_e02b4k5qik/croot/pillow_1707233036487/work
 reportlab==4.1.0
 streamlit==1.34.0
 streamlit-pdf-viewer==0.0.11
