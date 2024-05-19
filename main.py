@@ -79,7 +79,7 @@ if 'start_processing' not in st.session_state:
 uploaded_files = st.file_uploader("Upload PDF files", type=["pdf"], accept_multiple_files=True)
 
 if uploaded_files:
-    filter_level = st.slider("Adjust Inversion Level", 0, 100, 50, step=1)
+    filter_level = st.slider("Adjust Inversion Level", 0, 100, 100, step=1)
     st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown('<div style="text-align: center;font-size:170%;margin-bottom: 10px"><b>🛠 Process PDFs</b></div>', unsafe_allow_html=True)
 
