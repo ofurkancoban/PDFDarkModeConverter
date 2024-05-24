@@ -124,7 +124,7 @@ if uploaded_files:
             st.download_button(
                 label="Download",
                 data=output_stream,
-                file_name=f"{file_name}_withNotes.pdf",
+                file_name=f"{file_name}_DarkMode.pdf",
                 mime="application/pdf",
                 use_container_width=True,
                 key=f"download_{j}_{time.time()}"
