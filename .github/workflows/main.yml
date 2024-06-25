@@ -11,4 +11,4 @@ jobs:
     steps:
       - name: Ping Streamlit App
         run: |
-          curl -s -o /dev/null -w "%{http_code}" https://pdfdarkmodeconverter.streamlit.app/
+          curl -L -v https://pdfdarkmodeconverter.streamlit.app/
