@@ -3,7 +3,4 @@ PyMuPDFb==1.24.1
 reportlab==4.1.0
 streamlit==1.34.0
 streamlit-pdf-viewer==0.0.11
-opencv-python
-libgl1-mesa-glx
-pip==25.0.1
-rich<14
+opencv-python-headless==4.11.0.86
