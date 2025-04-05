@@ -6,7 +6,11 @@ import time
 from reportlab.pdfgen import canvas
 from reportlab.lib.utils import ImageReader
 from streamlit_pdf_viewer import pdf_viewer
+import cv2
+import numpy as np
+
 st.set_page_config(page_title="PDF Dark Mode Converter 🌗", page_icon="🌗")
+
 def add_custom_font():
     custom_font_css = """
     <style>
@@ -21,35 +25,50 @@ def add_custom_font():
 # Inject the custom font into the app
 add_custom_font()
 
-# Processing function
-def process_pdf(input_pdf_bytes, filter_level, zoom_level):
-    pdf_document = fitz.open(stream=input_pdf_bytes, filetype="pdf")
+# Helper function to format file sizes
+def format_size(size_bytes):
+    if size_bytes < 1024:
+        return f"{size_bytes} Bytes"
+    elif size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:,.2f} KB"
+    else:
+        return f"{size_bytes / (1024 * 1024):,.2f} MB"
 
+# Processing function with DPI adjustment via OpenCV
+# while keeping Pillow inversion & blending intact.
+def process_pdf(input_pdf_bytes, filter_level, dpi):
+    pdf_document = fitz.open(stream=input_pdf_bytes, filetype="pdf")
     output_buffer = io.BytesIO()
     c = canvas.Canvas(output_buffer)
-
     num_pages = len(pdf_document)
 
     for page_number in range(num_pages):
         page = pdf_document.load_page(page_number)
         page_width, page_height = page.rect.width, page.rect.height
 
-        # Use the zoom level selected by the user
-        mat = fitz.Matrix(zoom_level, zoom_level)
-        pix = page.get_pixmap(matrix=mat)
-        image = Image.frombytes("RGB", [pix.width, pix.height], pix.samples)
+        # Render the page with the specified DPI for high resolution
+        pix = page.get_pixmap(dpi=dpi)
 
+        # Convert the pixmap to a NumPy array using OpenCV
+        arr = np.frombuffer(pix.samples, dtype=np.uint8)
+        channels = 4 if pix.alpha else 3
+        arr = arr.reshape((pix.height, pix.width, channels))
+        if channels == 4:
+            arr = cv2.cvtColor(arr, cv2.COLOR_BGRA2RGB)
+        else:
+            arr = cv2.cvtColor(arr, cv2.COLOR_BGR2RGB)
+        # Convert the NumPy array to a PIL Image
+        image = Image.fromarray(arr)
+
+        # Apply inversion and blending using Pillow
         inverted_image = ImageOps.invert(image)
-
-        # If filter level is 50, change it to 60 for inversion purposes
         if filter_level == 50:
             filter_level = 60
-
         blend_factor = filter_level / 100
         final_image = Image.blend(image, inverted_image, blend_factor)
 
         image_bytes = io.BytesIO()
-        final_image.save(image_bytes, format="PNG", optimize=True, quality=100)
+        final_image.save(image_bytes, format="PNG", quality=100)
         image_bytes.seek(0)
 
         c.setPageSize((page_width, page_height))
@@ -59,9 +78,7 @@ def process_pdf(input_pdf_bytes, filter_level, zoom_level):
 
     c.save()
     output_buffer.seek(0)
-
     return output_buffer
-
 
 st.markdown(
     '<div style="text-align: center;font-size:300%;margin-bottom: 30px"><b>PDF Dark Mode Converter 🌗</b></div>',
@@ -79,7 +96,6 @@ st.markdown(
     """, unsafe_allow_html=True
 )
 
-# Customization Section
 st.markdown("<hr>", unsafe_allow_html=True)
 
 def start_processing():
@@ -89,7 +105,6 @@ def start_processing():
 # Check and initialize session state at the start
 if 'processed_files' not in st.session_state:
     st.session_state.processed_files = []
-
 if 'start_processing' not in st.session_state:
     st.session_state.start_processing = False
 
@@ -98,13 +113,13 @@ uploaded_files = st.file_uploader("Upload PDF files", type=["pdf"], accept_multi
 if uploaded_files:
     # Slider for inversion level (min: 0, max: 100, default: 100)
     filter_level = st.slider("Adjust Inversion Level", 0, 100, 100, step=1)
-    # Slider for zoom level (between 1 and 10, default value is 5)
-    zoom_level = st.slider("Quality Level", min_value=1, max_value=10, value=5, step=1)
+    # Slider for DPI (output quality)
+    dpi = st.slider("Output Quality (DPI)", 100, 800, 150, step=50)
 
     st.info(
         "High quality levels increase file size and achieving original quality cannot be guaranteed.\n"
         "Additionally, due to Streamlit deployment limits, the app may crash at very high quality settings.\n"
-        "Please choose an optimal zoom level.",icon="⚠️"
+        "Please choose an optimal DPI.", icon="⚠️"
     )
     st.markdown("<hr>", unsafe_allow_html=True)
     st.markdown(
@@ -131,9 +146,8 @@ if uploaded_files:
                 input_pdf_stream = io.BytesIO(binary_pdf)
                 input_pdf_stream.seek(0)
 
-                # Pass the zoom level parameter to the processing function
-                output_pdf_stream = process_pdf(input_pdf_stream.getvalue(), filter_level, zoom_level)
-
+                # Pass the DPI parameter along with the inversion level to the processing function
+                output_pdf_stream = process_pdf(input_pdf_stream.getvalue(), filter_level, dpi)
                 output_stream = output_pdf_stream.getvalue()
                 st.session_state.processed_files.append(
                     (uploaded_file.name, output_stream, f"download_{i}_{time.time()}")
@@ -155,7 +169,8 @@ if uploaded_files:
         )
         col1, col2 = st.columns([3, 1])
         with col1:
-            st.write(f"➔ {j + 1} -  {file_name}   ✅")
+            size_str = format_size(len(output_stream))
+            st.write(f"➔ {j + 1} - {file_name} ✅ | ({size_str})")
         with col2:
             st.download_button(
                 label="Download",
