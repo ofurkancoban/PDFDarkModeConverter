@@ -4,4 +4,4 @@ reportlab==4.1.0
 streamlit==1.34.0
 streamlit-pdf-viewer==0.0.11
 opencv-python
-libgl1-mesa-glx
+pip==25.0.1
