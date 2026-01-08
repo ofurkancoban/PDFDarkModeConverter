@@ -17,8 +17,8 @@ To run this project locally, you need to have Python installed. Follow these ste
 
 1. **Clone the repository:**
    ```bash
-   git clone https://github.com/yourusername/pdf-dark-mode-converter.git
-   cd pdf-dark-mode-converter
+   git clone https://github.com/ofurkancoban/PDFDarkModeConverter.git
+   cd PDFDarkModeConverter
    ```
 
 2. **Create a virtual environment:**
